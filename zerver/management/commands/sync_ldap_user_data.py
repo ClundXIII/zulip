@@ -9,7 +9,11 @@ from django.db import transaction
 from zerver.lib.logging_util import log_to_file
 from zerver.lib.management import ZulipBaseCommand
 from zerver.models import UserProfile
-from zproject.backends import ZulipLDAPError, sync_user_from_ldap
+from zproject.backends import (
+    ZulipLDAPError,
+    ensure_user_groups_for_ldap_sync_exist,
+    sync_user_from_ldap,
+)
 
 ## Setup ##
 logger = logging.getLogger("zulip.sync_ldap_user_data")
@@ -23,6 +27,8 @@ def sync_ldap_user_data(
     logger.info("Starting update.")
     try:
         realms = {u.realm.string_id for u in user_profiles}
+
+        ensure_user_groups_for_ldap_sync_exist()
 
         for u in user_profiles:
             # This will save the user if relevant, and will do nothing if the user

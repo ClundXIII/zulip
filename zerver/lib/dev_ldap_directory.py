@@ -14,7 +14,9 @@ LDAP_USER_ACCOUNT_CONTROL_NORMAL = "512"
 LDAP_USER_ACCOUNT_CONTROL_DISABLED = "514"
 
 
-def generate_dev_ldap_dir(mode: str, num_users: int = 8) -> Dict[str, Dict[str, Any]]:
+def generate_dev_ldap_dir(
+    mode: str, num_users: int = 8, num_groups: int = 3
+) -> Dict[str, Dict[str, Any]]:
     mode = mode.lower()
     ldap_data = []
     for i in range(1, num_users + 1):
@@ -55,6 +57,18 @@ def generate_dev_ldap_dir(mode: str, num_users: int = 8) -> Dict[str, Dict[str, 
             ldap_dir["uid=" + email_username + ",ou=users,dc=zulip,dc=com"] = dict(
                 uid=[email_username], email=[email], **common_data
             )
+
+    #    # create a bunch of groups
+    #    for i in range(num_groups):
+    #        group_name = "group_" + str(i)
+    #        ldap_dir["cn=" + group_name + ",ou=groups,dc=zulip,dc=com"] = {}
+    #
+    #    for i, user_data_key in enumerate(ldap_dir.keys()):
+    #        group_name = "group_" + str(i % num_groups)
+    #        array_pos = int(i * num_groups / num_users)
+    #        ldap_dir["cn=" + group_name + ",ou=groups,dc=zulip,dc=com"][
+    #            "{" + str(array_pos) + "}"
+    #        ] = user_data_key
 
     return ldap_dir
 

@@ -77,5 +77,14 @@
         "uid": ["user2_with_shared_email"],
         "sn": ["shortname"],
         "mail": ["shared_email@zulip.com"]
+    },
+
+    "cn=UniqeNameGroup,ou=groups,ou=zulip,dc=com": {
+        "cn": ["cool_test_group"],
+        "objectclass": ["groupOfUniqueNames"],
+        "uniquemember": [
+            "uid=hamlet,ou=users,dc=zulip,dc=com",
+            "uid=cordelia,ou=users,dc=zulip,dc=com"
+        ]
     }
 }

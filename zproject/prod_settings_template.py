@@ -264,6 +264,27 @@ AUTH_LDAP_USER_ATTR_MAP = {
 #    ]
 # }
 
+## These settings can be used to synchronize ldap user groups to Zulip user groups
+## The name of the groups have to be exactly the same!
+## `cn` value of the ldap group is used
+
+## make sure to set `AUTH_LDAP_BIND_DN`, otherwise Zulip cannot access the groups
+# AUTH_LDAP_GROUP_SEARCH = LDAPSearch(
+#     "ou=groups,dc=www,dc=example,dc=com", ldap.SCOPE_SUBTREE, "(objectClass=groupOfUniqueNames)"
+# )
+
+# LDAP_GROUP_SYNC_LIST = {
+# 2 : [ # <-- 2 is in most cases the correct realm id, use `manage.py list_realms` to check!
+#   "group1",
+#   "group2",
+# ]
+# }
+
+## The type of ldap group. If the zulip group name IS NOT the value of `cn`,
+## then derive this class and overwrite the `def group_name_from_info(self, group_info)` function
+# AUTH_LDAP_GROUP_TYPE = GroupOfUniqueNamesType()
+
+
 ########
 ## Google OAuth.
 ##

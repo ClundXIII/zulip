@@ -98,6 +98,8 @@ from zerver.models import (
     PasswordTooWeakError,
     PreregistrationUser,
     Realm,
+    UserGroup,
+    UserGroupMembership,
     UserProfile,
     custom_profile_fields_for_realm,
     get_realm,
@@ -543,6 +545,19 @@ def email_belongs_to_ldap(realm: Realm, email: str) -> bool:
         return False
 
 
+def ensure_user_groups_for_ldap_sync_exist() -> None:
+    for realm_id, ldap_group_sync_list in settings.LDAP_GROUP_SYNC_LIST.items():
+        for group in ldap_group_sync_list:
+            _, created = UserGroup.objects.get_or_create(
+                name=group,
+                realm_id=realm_id,
+                defaults={"description": "LDAP import of " + group},
+            )
+
+            if created:
+                ldap_logger.debug("creating zulip group %s from ldap for realm %s", group, realm_id)
+
+
 ldap_logger = logging.getLogger("zulip.ldap")
 
 
@@ -868,6 +883,62 @@ class ZulipLDAPAuthBackendBase(ZulipAuthMixin, LDAPBackend):
         except SyncUserError as e:
             raise ZulipLDAPError(str(e)) from e
 
+    def sync_groups_from_ldap(self, user_profile: UserProfile, ldap_user: _LDAPUser) -> None:
+        if user_profile.realm_id not in settings.LDAP_GROUP_SYNC_LIST:
+            # no groups synced for this realm
+            return
+
+        ldap_group_sync_list = set(settings.LDAP_GROUP_SYNC_LIST[user_profile.realm_id])
+
+        try:
+            ldap_logger.debug("Syncing groups for user: %s", user_profile.id)
+            ldap_group_name_set = set(ldap_user.group_names).intersection(ldap_group_sync_list)
+
+            member_group_name_set = {
+                membership.user_group.name
+                for membership in UserGroupMembership.objects.filter(
+                    user_group__realm=user_profile.realm,
+                    user_group__name__in=ldap_group_sync_list,
+                    user_profile=user_profile,
+                )
+            }
+
+            ldap_logger.debug("ldap groups: %s", repr(ldap_group_name_set))
+            ldap_logger.debug("zulip groups: %s", repr(member_group_name_set))
+
+            add_group_list = []
+
+            for group_to_add in ldap_group_name_set.difference(member_group_name_set):
+                ldap_logger.debug("add %s to %s", user_profile.full_name, str(group_to_add))
+
+                group = UserGroup.objects.get(name=group_to_add, realm=user_profile.realm)
+
+                add_group_list.append(
+                    UserGroupMembership(
+                        user_group_id=group.id,
+                        user_profile_id=user_profile.id,
+                    )
+                )
+
+            UserGroupMembership.objects.bulk_create(add_group_list)
+
+            del_groupid_list = []
+
+            for group_to_remove in member_group_name_set.difference(ldap_group_name_set):
+                ldap_logger.debug("remove %s from %s", user_profile.full_name, group_to_remove)
+
+                group = UserGroup.objects.get(name=group_to_remove, realm=user_profile.realm)
+
+                del_groupid_list.append(group.id)
+
+            UserGroupMembership.objects.filter(
+                user_profile_id=user_profile.id,
+                user_group_id__in=set(del_groupid_list),
+            ).delete()
+
+        except Exception as e:
+            raise ZulipLDAPError(str(e)) from e
+
 
 class ZulipLDAPAuthBackend(ZulipLDAPAuthBackendBase):
     REALM_IS_NONE_ERROR = 1
@@ -1084,6 +1155,7 @@ class ZulipLDAPUserPopulator(ZulipLDAPAuthBackendBase):
         self.sync_avatar_from_ldap(user, ldap_user)
         self.sync_full_name_from_ldap(user, ldap_user)
         self.sync_custom_profile_fields_from_ldap(user, ldap_user)
+        self.sync_groups_from_ldap(user, ldap_user)
         return (user, built)
 
 
