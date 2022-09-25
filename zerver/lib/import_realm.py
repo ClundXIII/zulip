@@ -683,7 +683,7 @@ def bulk_import_user_message_data(data: TableData, dump_file_id: int) -> None:
 def bulk_import_model(data: TableData, model: Any, dump_file_id: Optional[str] = None) -> None:
     table = get_db_table(model)
     # TODO, deprecate dump_file_id
-    model.objects.bulk_create(model(**item) for item in data[table])
+    model.objects.bulk_create( [model(**item) for item in data[table] ], ignore_conflicts=True)
     if dump_file_id is None:
         logging.info("Successfully imported %s from %s.", model, table)
     else:
@@ -1051,8 +1051,13 @@ def do_import_realm(import_dir: Path, subdomain: str, processes: int = 1) -> Rea
         # Validate both email attributes to be defensive
         # against any malformed data, where .delivery_email
         # might be set correctly, but .email not.
-        validate_email(user_profile.delivery_email)
-        validate_email(user_profile.email)
+        try: # <--- Poll bot in my case
+            validate_email(user_profile.delivery_email)
+            validate_email(user_profile.email)
+        except:
+            logging.info("rewriting email for user %s", str(user_profile.full_name))
+            user_profile.delivery_email = "none@example.com"
+            user_profile.email = "none@example.com"
         user_profile.set_unusable_password()
     UserProfile.objects.bulk_create(user_profiles)
 

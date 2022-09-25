@@ -470,10 +470,13 @@ def process_raw_message_batch(
     ) -> str:
         # Fix user mentions
         for user_id in mention_user_ids:
-            user = user_handler.get_user(user_id=user_id)
-            rc_mention = "@{short_name}".format(**user)
-            zulip_mention = "@**{full_name}**".format(**user)
-            content = content.replace(rc_mention, zulip_mention)
+            try:
+                user = user_handler.get_user(user_id=user_id)
+                rc_mention = "@{short_name}".format(**user)
+                zulip_mention = "@**{full_name}**".format(**user)
+                content = content.replace(rc_mention, zulip_mention)
+            except:
+                logging.info("[skipping] mention %s", str(user_id))
 
         content = content.replace("@all", "@**all**")
         # We don't have an equivalent for Rocket.Chat's @here mention
@@ -790,7 +793,11 @@ def process_messages(
             # Messages with a type are system notifications like user_joined
             # that we don't include.
             continue
-        raw_messages.append(message_to_dict(message))
+
+        try:
+            raw_messages.append(message_to_dict(message))
+        except:
+            logging.info("[skipping] %s", str(message))
 
     def process_batch(lst: List[Dict[str, Any]]) -> None:
         process_raw_message_batch(
@@ -932,10 +939,11 @@ def categorize_channels_and_map_with_id(
                     logging.debug("Skipping huddle with 0 messages: %s", channel)
                 elif huddle_hash in huddle_hashed_channels:  # nocoverage
                     logging.info(
-                        "Mapping huddle hash %s to existing channel: %s",
+                        "[Skipping]: Mapping huddle hash %s to existing channel: %s",
                         huddle_hash,
                         huddle_hashed_channels[huddle_hash],
                     )
+                    continue
                     huddle_id_to_huddle_map[channel["_id"]] = huddle_hashed_channels[huddle_hash]
 
                     # Ideally, we'd merge the duplicate huddles. Doing
