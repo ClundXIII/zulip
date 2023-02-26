@@ -208,8 +208,7 @@ def bulk_add_members_to_user_groups(
         RealmAuditLog(
             realm=user_group.realm,
             modified_user_id=user_id,
-            modified_user_group=user_group,
-            event_type=RealmAuditLog.USER_GROUP_DIRECT_USER_MEMBERSHIP_ADDED,
+            event_type=RealmAuditLog.USER_SETTING_CHANGED,
             event_time=now,
             acting_user=acting_user,
         )
@@ -241,8 +240,7 @@ def bulk_remove_members_from_user_groups(
         RealmAuditLog(
             realm=user_group.realm,
             modified_user_id=user_id,
-            modified_user_group=user_group,
-            event_type=RealmAuditLog.USER_GROUP_DIRECT_USER_MEMBERSHIP_REMOVED,
+            event_type=RealmAuditLog.USER_SETTING_CHANGED,
             event_time=now,
             acting_user=acting_user,
         )
