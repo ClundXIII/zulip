@@ -811,6 +811,13 @@ class ZulipLDAPAuthBackendBase(ZulipAuthMixin, LDAPBackend):
             return
 
         ldap_avatar = ldap_user.attrs[avatar_attr_name][0]
+        if not isinstance(ldap_avatar, bytes):
+            logging.warning(
+                "Skipping avatar sync for %s, wrong data type: %s",
+                user.email,
+                str(type(ldap_avatar)),
+            )
+            return
 
         avatar_changed = is_avatar_new(ldap_avatar, user)
         if not avatar_changed:
