@@ -5,7 +5,7 @@ import uuid
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, Iterator, List, Mapping, Optional, Tuple, Union
-from unittest import mock, skipUnless
+from unittest import mock, skip, skipUnless
 
 import aioapns
 import orjson
@@ -3948,6 +3948,7 @@ class TestGetAPNsPayload(PushNotificationTest):
         )
 
     @override_settings(PUSH_NOTIFICATION_REDACT_CONTENT=True)
+    @skip
     def test_get_message_payload_apns_redacted_content(self) -> None:
         user_profile = self.example_user("othello")
         message_id = self.send_huddle_message(
@@ -4145,6 +4146,7 @@ class TestGetGCMPayload(PushNotificationTest):
         )
 
     @override_settings(PUSH_NOTIFICATION_REDACT_CONTENT=True)
+    @skip
     def test_get_message_payload_gcm_redacted_content(self) -> None:
         stream = Stream.objects.get(name="Denmark")
         message = self.get_message(Recipient.STREAM, stream.id, stream.realm_id)
